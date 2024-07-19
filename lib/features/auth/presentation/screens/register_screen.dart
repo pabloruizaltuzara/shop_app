@@ -22,7 +22,7 @@ class RegisterScreen extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                const SizedBox( height: 80 ),
+                const SizedBox( height: 60 ),
                 // Icon Banner
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
@@ -43,7 +43,7 @@ class RegisterScreen extends StatelessWidget {
                 const SizedBox( height: 50 ),
     
                 Container(
-                  height: size.height - 260, // 80 los dos sizebox y 100 el ícono
+                  height: size.height - 180, // 80 los dos sizebox y 100 el ícono
                   width: double.infinity,
                   decoration: BoxDecoration(
                     color: scaffoldBackgroundColor,
@@ -80,7 +80,7 @@ class _RegisterForm extends StatelessWidget {
             label: 'Nombre completo',
             keyboardType: TextInputType.emailAddress,
           ),
-          const SizedBox( height: 30 ),
+          const SizedBox( height: 25 ),
 
           const CustomTextFormField(
             label: 'Correo',
@@ -104,7 +104,7 @@ class _RegisterForm extends StatelessWidget {
 
           SizedBox(
             width: double.infinity,
-            height: 60,
+            height: 65,
             child: CustomFilledButton(
               text: 'Crear',
               buttonColor: Colors.black,
