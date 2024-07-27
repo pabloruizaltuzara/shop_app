@@ -2,7 +2,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:teslo_shop/features/products/domain/domain.dart';
 import 'providers.dart';
 
-
 final productProvider = StateNotifierProvider.autoDispose
     .family<ProductNotifier, ProductState, String>((ref, productId) {
   final productsRepository = ref.watch(productsRepositoryProvider);
@@ -17,21 +16,38 @@ class ProductNotifier extends StateNotifier<ProductState> {
       : super(ProductState(id: productId)) {
     loadProduct();
   }
+  Product _newEmptyProduct() {
+    return Product(
+        id: 'new',
+        title: '',
+        price: 0,
+        description: '',
+        slug: '',
+        stock: 0,
+        sizes: [],
+        gender: 'men',
+        tags: [],
+        images: []);
+  }
 
   Future<void> loadProduct() async {
     try {
+      if (state.id == 'new') {
+        state = state.copyWith(
+          isLoading: false,
+          product: _newEmptyProduct()
+        );
+        return;
+      }
+
       final product = await productsRepository.getProductById(state.id);
 
-      state = state.copyWith(
-        isLoading: false,
-        product: product
-      );
-
+      state = state.copyWith(isLoading: false, product: product);
     } catch (e, stacktrace) {
-    // Captura la traza de pila para obtener más información
-    print('Error: ${e.toString()}');
-    print('Stacktrace: ${stacktrace.toString()}');
-  }
+      // Captura la traza de pila para obtener más información
+      print('Error: ${e.toString()}');
+      print('Stacktrace: ${stacktrace.toString()}');
+    }
   }
 }
 
@@ -52,7 +68,8 @@ class ProductState {
     Product? product,
     bool? isLoading,
     bool? isSaving,
-  }) => ProductState(
+  }) =>
+      ProductState(
         id: id ?? this.id,
         product: product ?? this.product,
         isLoading: isLoading ?? this.isLoading,

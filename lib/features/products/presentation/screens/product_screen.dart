@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:teslo_shop/features/products/domain/domain.dart';
@@ -10,23 +12,74 @@ class ProductScreen extends ConsumerWidget {
 
   const ProductScreen({super.key, required this.productId});
 
+  void showSnackBar(BuildContext context, String message) {
+    ScaffoldMessenger.of(context).clearSnackBars();
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
+  }
+
   @override
   Widget build(BuildContext context, ref) {
     final productState = ref.watch(productProvider(productId));
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Editar producto'),
-        actions: [
-          IconButton(
-              onPressed: () {}, icon: const Icon(Icons.camera_alt_outlined))
-        ],
-      ),
-      body: productState.isLoading
-          ? const FullScreenLoader()
-          : _ProductView(product: productState.product!),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {},
-        child: const Icon(Icons.save_as_outlined),
+    return GestureDetector(
+      onTap: () => FocusScope.of(context).unfocus(),
+      child: Scaffold(
+        appBar: AppBar(
+          centerTitle: true,
+          title: (productId == 'new')
+              ? const Text('Crear producto')
+              : const Text('Editar producto'),
+          actions: [
+            IconButton(
+                onPressed: () async {
+                  final photoPath =
+                      await CameraGalleryServiceImpl().selectPhoto();
+
+                  if (photoPath == null) return;
+                  ref
+                      .read(productFormProvider(productState.product!).notifier)
+                      .updateProductImage(photoPath);
+                },
+                icon: const Icon(Icons.photo_library_outlined)),
+            IconButton(
+                onPressed: () async {
+                  final photoPath =
+                      await CameraGalleryServiceImpl().takePhoto();
+
+                  if (photoPath == null) return;
+
+                  ref
+                      .read(productFormProvider(productState.product!).notifier)
+                      .updateProductImage(photoPath);
+                },
+                icon: const Icon(Icons.camera_alt_outlined))
+          ],
+        ),
+        body: productState.isLoading
+            ? const FullScreenLoader()
+            : _ProductView(product: productState.product!),
+        floatingActionButton: productState.isLoading ? null : FloatingActionButton(
+          onPressed:() {
+            if (productState.product == null) {
+              return;
+            }
+
+            ref
+                .read(productFormProvider(productState.product!).notifier)
+                .onFormSubmit()
+                .then((value) {
+              if (!value) return;
+              
+              final isNewProduct = productState.product!.id == 'new';
+              final message = isNewProduct
+                  ? 'Producto creado'
+                  : 'Producto actualizado';
+
+              showSnackBar(context, message);
+            });
+          },
+          child: const Icon(Icons.save_as_outlined),
+        ),
       ),
     );
   }
@@ -102,10 +155,17 @@ class _ProductInformation extends ConsumerWidget {
           ),
           const SizedBox(height: 15),
           const Text('Extras'),
-          _SizeSelector(selectedSizes: product.sizes, onSizedChanged: ref.read(productFormProvider(product).notifier).onSizesChanged),
+          _SizeSelector(
+              selectedSizes: productForm.sizes,
+              onSizedChanged: ref
+                  .read(productFormProvider(product).notifier)
+                  .onSizesChanged),
           const SizedBox(height: 5),
           _GenderSelector(
-            selectedGender: productForm.gender,  onGenderChanged: ref.read(productFormProvider(product).notifier).onGenderChanged),
+              selectedGender: productForm.gender,
+              onGenderChanged: ref
+                  .read(productFormProvider(product).notifier)
+                  .onGenderChanged),
           const SizedBox(height: 15),
           CustomProductField(
             isTopField: true,
@@ -122,7 +182,9 @@ class _ProductInformation extends ConsumerWidget {
             label: 'Descripción',
             keyboardType: TextInputType.multiline,
             initialValue: product.description,
-            onChanged: ref.read(productFormProvider(product).notifier).onDescriptionChanged,
+            onChanged: ref
+                .read(productFormProvider(product).notifier)
+                .onDescriptionChanged,
           ),
           CustomProductField(
             isBottomField: true,
@@ -130,7 +192,8 @@ class _ProductInformation extends ConsumerWidget {
             label: 'Tags (Separados por coma)',
             keyboardType: TextInputType.multiline,
             initialValue: product.tags.join(', '),
-            onChanged: ref.read(productFormProvider(product).notifier).onTagsChanged,
+            onChanged:
+                ref.read(productFormProvider(product).notifier).onTagsChanged,
           ),
           const SizedBox(height: 100),
         ],
@@ -160,6 +223,7 @@ class _SizeSelector extends StatelessWidget {
       }).toList(),
       selected: Set.from(selectedSizes),
       onSelectionChanged: (newSelection) {
+        FocusScope.of(context).unfocus();
         onSizedChanged(List.from(newSelection));
       },
       multiSelectionEnabled: true,
@@ -177,11 +241,8 @@ class _GenderSelector extends StatelessWidget {
     Icons.boy,
   ];
 
-
-  const _GenderSelector({
-    required this.selectedGender,
-    required this.onGenderChanged
-  });
+  const _GenderSelector(
+      {required this.selectedGender, required this.onGenderChanged});
 
   @override
   Widget build(BuildContext context) {
@@ -199,6 +260,7 @@ class _GenderSelector extends StatelessWidget {
         }).toList(),
         selected: {selectedGender},
         onSelectionChanged: (newSelection) {
+          FocusScope.of(context).unfocus();
           onGenderChanged(newSelection.first);
         },
       ),
@@ -212,25 +274,35 @@ class _ImageGallery extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (images.isEmpty) {
+      return ClipRRect(
+          borderRadius: const BorderRadius.all(Radius.circular(20)),
+          child: Image.asset('assets/images/no-image.jpg', fit: BoxFit.cover));
+    }
     return PageView(
       scrollDirection: Axis.horizontal,
       controller: PageController(viewportFraction: 0.7),
-      children: images.isEmpty
-          ? [
-              ClipRRect(
-                  borderRadius: const BorderRadius.all(Radius.circular(20)),
-                  child: Image.asset('assets/images/no-image.jpg',
-                      fit: BoxFit.cover))
-            ]
-          : images.map((e) {
-              return ClipRRect(
-                borderRadius: const BorderRadius.all(Radius.circular(20)),
-                child: Image.network(
-                  e,
-                  fit: BoxFit.cover,
-                ),
-              );
-            }).toList(),
+      children: images.map((image) {
+        late ImageProvider imageProvider;
+
+        if (image.startsWith('http')) {
+          imageProvider = NetworkImage(image);
+        } else {
+          imageProvider = FileImage(File(image));
+        }
+
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10.0),
+          child: ClipRRect(
+            borderRadius: const BorderRadius.all(Radius.circular(20)),
+            child: FadeInImage(
+              placeholder: const AssetImage('assets/loaders/bottle-loader.gif'),
+              image: imageProvider,
+              fit: BoxFit.cover,
+            )
+          ),
+        );
+      }).toList(),
     );
   }
 }

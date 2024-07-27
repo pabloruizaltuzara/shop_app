@@ -2,22 +2,25 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:formz/formz.dart';
 import 'package:teslo_shop/config/config.dart';
 import 'package:teslo_shop/features/products/domain/entities/product.dart';
+import 'package:teslo_shop/features/products/presentation/providers/products_provider.dart';
 
 import '../../../../shared/infrastructure/inputs/inputs.dart';
 
 final productFormProvider = StateNotifierProvider.autoDispose
     .family<ProductFormNotifier, ProductFormState, Product>((ref, product) {
-  
+  //final createeUpdateCallback =
+  //ref.watch(productsRepositoryProvider).createupdateProduct;
 
-  
+  final createUpdateCallback =
+      ref.watch(productsProvider.notifier).createOrUpdateProduct;
+
   return ProductFormNotifier(
-    product: product
-    
-    );
+      product: product, onSubmitCallback: createUpdateCallback);
 });
 
 class ProductFormNotifier extends StateNotifier<ProductFormState> {
-  final void Function(Map<String, dynamic> productLike)? onSubmitCallback;
+  final Future<bool> Function(Map<String, dynamic> productLike)?
+      onSubmitCallback;
 
   ProductFormNotifier({
     this.onSubmitCallback,
@@ -41,7 +44,7 @@ class ProductFormNotifier extends StateNotifier<ProductFormState> {
     if (onSubmitCallback == null) return false;
 
     final productLike = {
-      'id': state.id,
+      'id': (state.id == 'new') ? null : state.id,
       'title': state.title.value,
       'price': state.price.value,
       'description': state.description,
@@ -56,7 +59,11 @@ class ProductFormNotifier extends StateNotifier<ProductFormState> {
           .toList()
     };
 
-    return true;
+    try {
+      return onSubmitCallback!(productLike);
+    } catch (e) {
+      return false;
+    }
   }
 
   void _touchEverything() {
@@ -67,6 +74,12 @@ class ProductFormNotifier extends StateNotifier<ProductFormState> {
       Price.dirty(state.price.value),
       Stock.dirty(state.inStock.value),
     ]));
+  }
+
+  void updateProductImage(String path) {
+    state = state.copyWith(
+      images: [...state.images, path]
+    );
   }
 
   void onTitleChanged(String value) {

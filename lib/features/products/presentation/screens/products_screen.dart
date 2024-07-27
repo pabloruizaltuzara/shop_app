@@ -16,7 +16,8 @@ class ProductsScreen extends StatelessWidget {
     return Scaffold(
       drawer: SideMenu(scaffoldKey: scaffoldKey),
       appBar: AppBar(
-        title: const Text('Products'),
+        title: const Text('Productos'),
+        centerTitle: true,
         actions: [
           IconButton(onPressed: () {}, icon: const Icon(Icons.search_rounded))
         ],
@@ -25,7 +26,9 @@ class ProductsScreen extends StatelessWidget {
       floatingActionButton: FloatingActionButton.extended(
         label: const Text('Nuevo producto'),
         icon: const Icon(Icons.add),
-        onPressed: () {},
+        onPressed: () {
+          context.push('/product/new');
+        },
       ),
     );
   }
@@ -45,7 +48,6 @@ class _ProductsViewState extends ConsumerState {
   void initState() {
     super.initState();
     scrollController.addListener(() {
-
       if (scrollController.position.pixels + 400 >=
           scrollController.position.maxScrollExtent) {
         ref.read(productsProvider.notifier).loadNextPage();
@@ -62,21 +64,24 @@ class _ProductsViewState extends ConsumerState {
   @override
   Widget build(BuildContext context) {
     final productsState = ref.watch(productsProvider);
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 10),
-      child: MasonryGridView.count(
-          controller: scrollController,
-          physics: const BouncingScrollPhysics(),
-          crossAxisCount: 2,
-          mainAxisSpacing: 20,
-          crossAxisSpacing: 35,
-          itemCount: productsState.products.length,
-          itemBuilder: (context, index) {
-            final product = productsState.products[index];
-            return GestureDetector(
-              onTap: ()=>context.push('/product/${product.id}'),
-              child: ProductCard(product: product));
-          }),
+    return RefreshIndicator(
+      onRefresh: () => ref.read(productsProvider.notifier).loadNextPage(),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 10),
+        child: MasonryGridView.count(
+            controller: scrollController,
+            physics: const BouncingScrollPhysics(),
+            crossAxisCount: 2,
+            mainAxisSpacing: 20,
+            crossAxisSpacing: 35,
+            itemCount: productsState.products.length,
+            itemBuilder: (context, index) {
+              final product = productsState.products[index];
+              return GestureDetector(
+                  onTap: () => context.push('/product/${product.id}'),
+                  child: ProductCard(product: product));
+            }),
+      ),
     );
   }
 }
