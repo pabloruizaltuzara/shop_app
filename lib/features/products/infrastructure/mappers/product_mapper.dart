@@ -16,13 +16,18 @@ class ProductMapper{
     stock:json['stock'], 
     sizes: List<String>.from(json['sizes'].map((size)=>size)), 
     gender: json["gender"],
-    tags: List<String>.from(json['tag'].map((tag)=>tag)), 
-    images: List<String>.from(json['images'].map(
-      (image) => image.startsWith('http')
-        ? image
-        : '${Environment.apiUrl}/files/product/$image',
-    )), 
+    tags: List<String>.from(json['tags'].map((tag)=>tag)), 
+    images: List<String>.from(
+      (json['images'] as List).map((image) {
+        final imageUrl = image is Map<String, dynamic> ? image['url']?.toString() : image.toString();
+        return imageUrl!.startsWith('http')
+          ? imageUrl
+          : '${Environment.apiUrl}/files/product/$imageUrl';
+      })
+    ),
+
     user: UserMapper.userJsonToEntity(json['user'])
   );
 
 }
+

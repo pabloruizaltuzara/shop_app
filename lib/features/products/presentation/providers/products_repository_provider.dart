@@ -4,13 +4,11 @@ import 'package:teslo_shop/features/products/domain/domain.dart';
 import 'package:teslo_shop/features/products/infrastructure/datasources/products_datasource_impl.dart';
 import 'package:teslo_shop/features/products/infrastructure/repositories/products_repository_impl.dart';
 
-final productosRepositoryProvider = Provider<ProductsRepository>((ref) {
-
+final productsRepositoryProvider = Provider<ProductsRepository>((ref) {
   final accessToken = ref.watch(authProvider).user?.token ?? '';
 
-  final productsRepository = ProductsRepositoryImpl(
-    ProductsDatasourceImpl(accessToken: accessToken)
-  );
+  final productsRepository =
+      ProductsRepositoryImpl(ProductsDatasourceImpl(accessToken: accessToken));
 
   return productsRepository;
 });
